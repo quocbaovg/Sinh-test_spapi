@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Kho dữ liệu · UniGenTest{% endblock %}
+
+{% block content %}
+  <div class="breadcrumb">Unicorns Edu / Kho dữ liệu</div>
+  <div class="page-head">
+    <div>
+      <h1>Kho dữ liệu</h1>
+      <p class="sub">Các bộ testcase đã lưu từ AI Hub. Bấm tên pool để xem lại.</p>
+    </div>
+    <a class="btn-primary" style="width:auto" href="{% url 'dashboard:hub' %}">+ Sinh test mới</a>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Tên pool</th>
+            <th>Ngôn ngữ</th>
+            <th>Testcase</th>
+            <th>Pass rate</th>
+            <th>Job nguồn</th>
+            <th>Thời gian</th>
+            <th style="width:72px;text-align:center">Xem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pools %}
+          <tr>
+            <td>
+              <a class="pool-link" href="{% url 'dashboard:data_pool_detail' p.pk %}">{{ p.name }}</a>
+            </td>
+            <td class="mono">{{ p.language }}</td>
+            <td class="mono">{{ p.total_count }}</td>
+            <td>
+              {% if p.pass_rate >= 100 %}
+              <span class="status-pill status-ok">{{ p.pass_rate }}%</span>
+              {% else %}
+              <span class="status-pill status-warn">{{ p.pass_rate }}%</span>
+              {% endif %}
+            </td>
+            <td class="mono">{% if p.job %}#{{ p.job_id }}{% else %}—{% endif %}</td>
+            <td class="mono">{{ p.created_at|date:"d/m H:i" }}</td>
+            <td style="text-align:center">
+              <a class="eye-btn" href="{% url 'dashboard:data_pool_detail' p.pk %}" title="Xem testcase" aria-label="Xem {{ p.name }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" style="text-align:center;color:var(--muted);padding:28px">
+              Chưa có bộ test nào. Vào AI Hub → Sinh test → bấm <strong>Lưu trữ</strong>.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

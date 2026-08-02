@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}{{ pool.name }} · Kho dữ liệu{% endblock %}
+
+{% block content %}
+  <div class="breadcrumb">
+    Unicorns Edu /
+    <a href="{% url 'dashboard:data_pools' %}">Kho dữ liệu</a>
+    / {{ pool.name }}
+  </div>
+  <div class="page-head">
+    <div>
+      <h1>{{ pool.name }}</h1>
+      <p class="sub">
+        {{ pool.total_count }} testcase · {{ pool.language }}
+        {% if pool.job %} · Job #{{ pool.job_id }}{% endif %}
+        · {{ pool.created_at|date:"d/m/Y H:i" }}
+      </p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-ghost" type="button" id="btnExport">Xuất JSON</button>
+      <a class="btn-primary" style="width:auto" href="{% url 'dashboard:hub' %}">+ Sinh test mới</a>
+    </div>
+  </div>
+
+  <div class="stats-inline" style="margin-bottom:12px">
+    <div class="s"><span>Pass</span><strong>{{ pool.pass_count }} / {{ pool.total_count }}</strong></div>
+    <div class="s"><span>Pass rate</span><strong>{{ pool.pass_rate }}%</strong></div>
+    <div class="s"><span>Ngôn ngữ</span><strong class="mono">{{ pool.language }}</strong></div>
+    <div class="s"><span>Job nguồn</span><strong class="mono">{% if pool.job %}#{{ pool.job_id }}{% else %}—{% endif %}</strong></div>
+  </div>
+
+  {% if pool.problem %}
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-head"><h2>Đề bài (đã lưu)</h2></div>
+    <pre class="mono problem-preview">{{ pool.problem }}</pre>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Testcase</h2>
+      <span class="status-pill {% if pool.pass_rate >= 100 %}status-ok{% else %}status-warn{% endif %}">
+        PASS {{ pool.pass_count }}/{{ pool.total_count }}
+      </span>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Loại</th>
+            <th>KQ</th>
+            <th style="width:64px;text-align:center">Xem</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody">
+          {% for tc in cases %}
+          <tr>
+            <td class="mono" style="font-weight:800">{{ tc.id }}</td>
+            <td>
+              <span class="status-pill {% if tc.type == 'BOUNDARY' %}type-boundary{% elif tc.type == 'OVERFLOW' %}type-overflow{% elif tc.type == 'NULL_VAL' %}type-null{% else %}type-nominal{% endif %}">
+                {{ tc.type|default:"—" }}
+              </span>
+            </td>
+            <td>
+              {% if tc.ok %}
+              <span class="status-pill status-ok">PASS</span>
+              {% else %}
+              <span class="status-pill status-warn">FAIL</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center">
+              <button class="eye-btn" type="button" data-idx="{{ forloop.counter0 }}" title="Xem test" aria-label="Xem {{ tc.id }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" style="text-align:center;color:var(--muted);padding:28px">Pool này không có testcase.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="testModal" hidden>
+    <div class="modal-box modal-test" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
+      <div class="modal-test-head">
+        <h2 id="testModalTitle">TC-001</h2>
+        <button class="icon-btn" type="button" id="btnTestClose" aria-label="Đóng">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="test-meta" id="testModalMeta"></div>
+      <div class="test-block">
+        <div class="test-label">Input</div>
+        <pre class="mono" id="testModalInput"></pre>
+      </div>
+      <div class="test-block">
+        <div class="test-label">Expected</div>
+        <pre class="mono" id="testModalExpected"></pre>
+      </div>
+      <div class="test-block">
+        <div class="test-label">Got (AC)</div>
+        <pre class="mono" id="testModalGot"></pre>
+      </div>
+    </div>
+  </div>
+
+  {{ cases|json_script:"pool-cases" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const cases = JSON.parse(document.getElementById("pool-cases").textContent);
+  const $ = (id) => document.getElementById(id);
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c =>
+      ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  function showTestModal(tc) {
+    if (!tc) return;
+    $("testModalTitle").textContent = tc.id || "Testcase";
+    $("testModalMeta").innerHTML =
+      `<span class="status-pill ${tc.ok ? "status-ok" : "status-warn"}">${tc.ok ? "PASS" : "FAIL"}</span>` +
+      ` <span class="status-pill type-nominal">${esc(tc.type || "—")}</span>`;
+    $("testModalInput").textContent = tc.input ?? "";
+    $("testModalExpected").textContent = tc.expected ?? "";
+    $("testModalGot").textContent = tc.got ?? "";
+    $("testModal").hidden = false;
+  }
+  function hideTestModal() { $("testModal").hidden = true; }
+
+  $("btnTestClose").addEventListener("click", hideTestModal);
+  $("testModal").addEventListener("click", (e) => {
+    if (e.target === $("testModal")) hideTestModal();
+  });
+  $("resultBody").addEventListener("click", (e) => {
+    const btn = e.target.closest(".eye-btn");
+    if (!btn) return;
+    showTestModal(cases[Number(btn.dataset.idx)]);
+  });
+  $("btnExport").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(cases, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "unigentest-pool-{{ pool.pk }}.json";
+    a.click();
+  });
+})();
+</script>
+{% endblock %}

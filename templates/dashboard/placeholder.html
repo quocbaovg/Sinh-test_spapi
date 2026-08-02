@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} · UniGenTest{% endblock %}
+
+{% block content %}
+  <div class="breadcrumb">Bảng điều khiển / {{ title }}</div>
+  <div class="card placeholder-box">
+    <h2>{{ title }}</h2>
+    <p>Trang demo tạm — sẽ nối DeepSeek API và dữ liệu thật ở bước sau.</p>
+    <a class="btn-primary" style="width:auto;display:inline-flex;margin-top:16px" href="{% url 'dashboard:hub' %}">
+      Mở AI Testcase Hub
+    </a>
+  </div>
+{% endblock %}

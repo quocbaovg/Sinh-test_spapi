@@ -1,0 +1,4 @@
+Django>=4.2,<5
+openai>=1.40
+python-dotenv>=1.0
+Pillow>=10.0

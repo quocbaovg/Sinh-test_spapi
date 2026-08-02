@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Mô hình AI · UniGenTest{% endblock %}
+
+{% block content %}
+  <div class="breadcrumb">Unicorns Edu / Mô hình AI</div>
+  <div class="page-head">
+    <div>
+      <h1>Mô hình AI</h1>
+      <p class="sub">Các model đang hỗ trợ, trạng thái endpoint và thông số vận hành.</p>
+    </div>
+    <div class="uptime-badge">
+      <span class="dot"></span>
+      {{ online_count }}/{{ total_count }} online
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <ul class="tele-list">
+      <li><span>Endpoint</span><strong class="mono">{{ base_url }}</strong></li>
+      <li><span>API key</span><strong>{% if has_key %}Đã cấu hình{% else %}Thiếu{% endif %}</strong></li>
+      <li><span>Giao thức</span><strong>OpenAI-compatible</strong></li>
+    </ul>
+  </div>
+
+  <div class="model-grid">
+    {% for m in models %}
+    <div class="card model-status-card{% if m.status == 'dev' %} is-dev{% endif %}">
+      <div class="model-status-head">
+        <div>
+          <div class="model-status-name">
+            {{ m.name }}
+            {% if m.default %}<span class="stable-badge">MẶC ĐỊNH</span>{% endif %}
+            {% if m.status == 'dev' %}<span class="stable-badge badge-dev">SOON</span>{% endif %}
+          </div>
+          <div class="model-status-id mono">{{ m.id }} · {{ m.provider }}</div>
+        </div>
+        <div class="status-light status-light-{{ m.status }}" title="{{ m.status_detail }}">
+          <span class="lamp"></span>
+          {{ m.status_label }}
+        </div>
+      </div>
+
+      <p class="model-status-desc">{{ m.desc }}</p>
+      <p class="hint-line">{{ m.status_detail }}</p>
+
+      <div class="stats-inline" style="margin-top:12px;margin-bottom:0">
+        <div class="s"><span>Context</span><strong>{{ m.context }}</strong></div>
+        <div class="s"><span>Latency ước tính</span><strong>{{ m.latency }}</strong></div>
+        <div class="s"><span>Chi phí</span><strong>{{ m.cost }}</strong></div>
+        <div class="s"><span>Ping API</span><strong>{% if m.latency_ms %}{{ m.latency_ms }} ms{% else %}—{% endif %}</strong></div>
+      </div>
+
+      <div class="model-tags">
+        <span class="status-pill type-nominal">{{ m.tag }}</span>
+        <span class="status-pill status-sync">{{ m.strength }}</span>
+        <span class="status-pill type-boundary">{{ m.endpoint }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endblock %}

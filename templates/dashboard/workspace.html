@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Tổng quan vận hành · UniGenTest{% endblock %}
+
+{% block content %}
+  <div class="breadcrumb">Unicorns Edu / Tổng quan</div>
+
+  <div class="page-head">
+    <div>
+      <h1>Tổng quan UniGenTest</h1>
+      <p class="sub">Cluster, token AI, testcase đã tạo và độ trễ API.</p>
+    </div>
+    <div class="uptime-badge">
+      <span class="dot"></span>
+      Uptime: 99.98%
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="card">
+      <div class="kpi-label">Cluster đang hoạt động</div>
+      <div class="kpi-value">{{ kpi.active_clusters }} / {{ kpi.total_clusters }}</div>
+      <div class="kpi-meta">{{ kpi.cluster_load }}% tải hệ thống</div>
+      <div class="progress"><span style="width:{{ kpi.cluster_load }}%"></span></div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">Tổng token AI đã dùng</div>
+      <div class="kpi-value mono">{{ kpi.tokens_used }}</div>
+      <div class="kpi-meta">Hạn mức: {{ kpi.tokens_limit }}</div>
+      <div class="progress"><span style="width:{{ kpi.tokens_pct }}%"></span></div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">Tổng số testcase đã tạo</div>
+      <div class="kpi-value mono">{{ kpi.total_testcases }}</div>
+      <div class="kpi-meta up">+{{ kpi.today_testcases }} hôm nay</div>
+    </div>
+    <div class="card">
+      <div class="kpi-label">Độ trễ API</div>
+      <div class="kpi-value mono">{{ kpi.api_latency }}</div>
+      <div class="kpi-meta">p99: {{ kpi.api_p99 }}</div>
+    </div>
+  </div>
+
+  <div class="mid-grid">
+    <div class="card">
+      <div class="section-bar" style="margin-bottom:8px">
+        <h2 style="font-size:13px">Testcase tạo gần đây</h2>
+        <div style="display:flex;gap:14px;font-size:12px;font-weight:800;color:var(--muted)">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#ff6a2b;border:1.5px solid #1c1228;margin-right:5px"></span>Số testcase / giờ</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="testcaseChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title" style="margin-bottom:14px">Nhật ký kỹ thuật</h2>
+      <ul class="logs-list">
+        {% for log in logs %}
+        <li class="log-item">
+          <span class="tag {{ log.tag_class }}">{{ log.tag }}</span>
+          <span class="time">{{ log.time }}</span>
+          <span class="text">{{ log.text }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <a class="view-all" href="{% url 'dashboard:logs' %}">
+        Xem toàn bộ lịch sử
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-bar">
+      <h2>Kho dữ liệu đang hoạt động</h2>
+      <div class="section-actions">
+        <button class="btn-ghost btn-sm" type="button">Lọc</button>
+        <button class="btn-ghost btn-sm" type="button">Làm mới</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Mã kho</th>
+            <th>Trạng thái</th>
+            <th>Bản ghi</th>
+            <th>Thời gian suy luận</th>
+            <th>Đồng bộ gần nhất</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pool in pools %}
+          <tr>
+            <td class="mono" style="font-weight:600">{{ pool.id }}</td>
+            <td><span class="status-pill {{ pool.status_class }}">{{ pool.status }}</span></td>
+            <td class="mono">{{ pool.records }}</td>
+            <td class="mono">{{ pool.inference }}</td>
+            <td>{{ pool.sync }}</td>
+            <td>
+              <div class="row-actions">
+                <button class="icon-btn" type="button" title="Xem" aria-label="Xem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="icon-btn" type="button" title="Đồng bộ" aria-label="Đồng bộ">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const labels = {{ chart_labels|safe }};
+  const counts = {{ chart_counts|safe }};
+  new Chart(document.getElementById('testcaseChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Testcase tạo',
+        data: counts,
+        borderColor: '#5b3d8f',
+        backgroundColor: 'rgba(255, 106, 43, 0.18)',
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#ff6a2b',
+        pointBorderColor: '#1c1228',
+        pointBorderWidth: 2,
+        fill: true,
+        tension: 0.35,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ctx.parsed.y + ' testcase'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxTicksLimit: 8, color: '#5c5a55', font: { size: 11, weight: '700', family: 'Nunito' } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.08)' },
+          ticks: { color: '#5c5a55', font: { size: 11, weight: '700' }, precision: 0 },
+          border: { display: false }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}
